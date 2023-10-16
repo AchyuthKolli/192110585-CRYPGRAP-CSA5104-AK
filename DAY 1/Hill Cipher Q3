@@ -1,0 +1,94 @@
+import numpy as np
+
+ALPHABET = 'abcdefghijklmnopqrstuvwxyz'
+
+def gcd(a, b):
+    while b:
+        a, b = b, a % b
+    return a
+
+def mod_inverse(a, m):
+    for x in range(1, m):
+        if (a * x) % m == 1:
+            return x
+    return -1
+
+def is_invertible(matrix, mod):
+    det = np.linalg.det(matrix)
+    return det != 0 and gcd(int(det) % mod, mod) == 1
+
+def hill_encrypt(key, text, size, mod):
+    matrix = np.array(key).reshape(size, size)
+    text = [ALPHABET.index(char) for char in text]
+
+    result = []
+
+    for i in range(0, len(text), size):
+        block = np.array(text[i:i+size])
+        encrypted_block = (np.dot(matrix, block) % mod).tolist()
+        result.extend(encrypted_block)
+
+    encrypted_text = ''.join([ALPHABET[i] for i in result])
+    return encrypted_text
+
+def hill_decrypt(key, text, size, mod):
+    matrix = np.array(key).reshape(size, size)
+
+    if not is_invertible(matrix, mod):
+        return "Matrix not invertible."
+
+    det = np.linalg.det(matrix)
+    mod_inv = mod_inverse(int(det) % mod, mod)
+
+    if mod_inv == -1:
+        return "Modular inverse not found."
+
+    inv_matrix = (mod_inv * np.round(det * np.linalg.inv(matrix)) % mod).astype(int)
+    text = [ALPHABET.index(char) for char in text]
+
+    result = []
+
+    for i in range(0, len(text), size):
+        block = np.array(text[i:i+size])
+        decrypted_block = (np.dot(inv_matrix, block) % mod).tolist()
+        result.extend(decrypted_block)
+
+    decrypted_text = ''.join([ALPHABET[i] for i in result])
+    return decrypted_text
+
+def main():
+    choice = int(input("Choose an option:\n1. Encrypt\n2. Decrypt\nEnter your choice (1 or 2): "))
+
+    if choice not in [1, 2]:
+        print("Invalid choice. Please choose 1 for encryption or 2 for decryption.")
+        return
+
+    size = int(input("Enter the matrix size (2, 3, or 4): "))
+
+    if size < 2 or size > 4:
+        print("Invalid matrix size. Please choose a size between 2 and 4.")
+        return
+
+    key = []
+    print(f"Enter the key matrix ({size}x{size}):")
+    for i in range(size):
+        key_row = list(map(int, input().split()))
+        key.append(key_row)
+
+    text = input("Enter the text (in lowercase, no spaces): ")
+    mod = 26  # Modulus for the alphabet
+
+    if choice == 1:
+        encrypted_text = hill_encrypt(key, text, size, mod)
+        print(f"Encrypted text: {encrypted_text}")
+    else:
+        decrypted_text = hill_decrypt(key, text, size, mod)
+        if "Matrix not invertible" in decrypted_text:
+            print("Decryption failed: Matrix not invertible.")
+        elif "Modular inverse not found" in decrypted_text:
+            print("Decryption failed: Modular inverse not found.")
+        else:
+            print(f"Decrypted text: {decrypted_text}")
+
+if __name__ == "__main__":
+    main()
