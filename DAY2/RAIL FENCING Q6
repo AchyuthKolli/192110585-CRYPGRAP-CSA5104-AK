@@ -1,0 +1,99 @@
+def encryptRailFence(text, key):
+    rail = [['\n' for i in range(len(text))] for j in range(key)]
+    dir_down = False
+    row, col = 0, 0
+
+    for i in range(len(text)):
+        if (row == 0) or (row == key - 1):
+            dir_down = not dir_down
+        rail[row][col] = text[i]
+        col += 1
+        if dir_down:
+            row += 1
+        else:
+            row -= 1
+
+    result = []
+    rail_design = []
+
+    for i in range(key):
+        row_design = ""
+        for j in range(len(text)):
+            if rail[i][j] != '\n':
+                result.append(rail[i][j])
+                row_design += rail[i][j]
+            else:
+                row_design += " "
+        rail_design.append(row_design)
+
+    ciphertext = "".join(result)
+    plaintext = text
+    return ciphertext, plaintext, rail_design
+
+def decryptRailFence(cipher, key):
+    rail = [['\n' for i in range(len(cipher))] for j in range(key)]
+    dir_down = True
+
+    row, col = 0, 0
+    for i in range(len(cipher)):
+        if row == 0:
+            dir_down = True
+        if row == key - 1:
+            dir_down = False
+        rail[row][col] = '*'
+        col += 1
+        if dir_down:
+            row += 1
+        else:
+            row -= 1
+
+    index = 0
+    for i in range(key):
+        for j in range(len(cipher)):
+            if rail[i][j] == '*' and index < len(cipher):
+                rail[i][j] = cipher[index]
+                index += 1
+
+    result = []
+    rail_design = []
+
+    for i in range(key):
+        row_design = ""
+        for j in range(len(cipher)):
+            if rail[i][j] != '*' and cipher[index - 1] != ' ':
+                result.append(rail[i][j])
+                row_design += rail[i][j]
+            else:
+                row_design += " "
+        rail_design.append(row_design)
+
+    plaintext = "".join(result)
+    ciphertext = cipher
+    return ciphertext, plaintext, rail_design
+
+while True:
+    print("Rail Fence Cipher")
+    print("1. Encrypt")
+    print("2. Decrypt")
+    print("3. Quit")
+    choice = input("Enter your choice (1/2/3): ")
+
+    if choice == "1":
+        plaintext = input("Enter the text to encrypt: ")
+        key = int(input("Enter the key (number of rails): "))
+        ciphertext, plaintext, rail_design = encryptRailFence(plaintext, key)
+        print("Ciphertext (CT):", ciphertext)
+        print("Plaintext (PT):", plaintext)
+        print("Rail Design:")
+        for row in rail_design:
+            print(row)
+    elif choice == "2":
+        ciphertext = input("Enter the text to decrypt: ")
+        key = int(input("Enter the key (number of rails): "))
+        print("Ciphertext (CT):", ciphertext)
+        print("Plaintext (PT):", plaintext)
+    elif choice == "3":
+        print("Goodbye!")
+        break
+    else:
+        print("Invalid choice. Please enter 1, 2, or 3.")
