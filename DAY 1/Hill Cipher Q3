@@ -1,94 +1,114 @@
-import numpy as np
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <stdlib.h>
 
-ALPHABET = 'abcdefghijklmnopqrstuvwxyz'
+#define MOD 26
 
-def gcd(a, b):
-    while b:
-        a, b = b, a % b
-    return a
+// Function to calculate the greatest common divisor (GCD) of two numbers
+int gcd(int a, int b) {
+    if (b == 0)
+        return a;
+    return gcd(b, a % b);
+}
 
-def mod_inverse(a, m):
-    for x in range(1, m):
-        if (a * x) % m == 1:
-            return x
-    return -1
+// Function to calculate the modular multiplicative inverse using the Extended Euclidean Algorithm
+int modInverse(int a, int m) {
+    a = a % m;
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1)
+            return x;
+    }
+    return -1; // Inverse doesn't exist
+}
 
-def is_invertible(matrix, mod):
-    det = np.linalg.det(matrix)
-    return det != 0 and gcd(int(det) % mod, mod) == 1
+// Function to perform Hill cipher encryption
+void hillEncrypt(int key[][2], char *text, int len) {
+    int result[len];
+    int size = 2;
 
-def hill_encrypt(key, text, size, mod):
-    matrix = np.array(key).reshape(size, size)
-    text = [ALPHABET.index(char) for char in text]
+    for (int i = 0; i < len; i += size) {
+        for (int j = 0; j < size; j++) {
+            result[i + j] = 0;
+            for (int k = 0; k < size; k++) {
+                result[i + j] += key[j][k] * (text[i + k] - 'a');
+            }
+            result[i + j] %= 26;
+            text[i + j] = 'a' + result[i + j];
+        }
+    }
+}
 
-    result = []
+// Function to perform Hill cipher decryption
+void hillDecrypt(int key[][2], char *text, int len) {
+    int result[len];
+    int size = 2;
+    int determinant = key[0][0] * key[1][1] - key[0][1] * key[1][0];
 
-    for i in range(0, len(text), size):
-        block = np.array(text[i:i+size])
-        encrypted_block = (np.dot(matrix, block) % mod).tolist()
-        result.extend(encrypted_block)
+    if (determinant == 0 || gcd(determinant, MOD) != 1) {
+        printf("Matrix not invertible.\n");
+        return;
+    }
 
-    encrypted_text = ''.join([ALPHABET[i] for i in result])
-    return encrypted_text
+    int inverse = modInverse(determinant, MOD);
+    if (inverse == -1) {
+        printf("Matrix not invertible.\n");
+        return;
+    }
 
-def hill_decrypt(key, text, size, mod):
-    matrix = np.array(key).reshape(size, size)
+    int a = (key[1][1] * inverse) % MOD;
+    int b = (MOD - key[0][1]) * inverse % MOD;
+    int c = (MOD - key[1][0]) * inverse % MOD;
+    int d = (key[0][0] * inverse) % MOD;
 
-    if not is_invertible(matrix, mod):
-        return "Matrix not invertible."
+    for (int i = 0; i < len; i += size) {
+        for (int j = 0; j < size; j++) {
+            result[i + j] = 0;
+            for (int k = 0; k < size; k++) {
+                result[i + j] += (a * (text[i + k] - 'a') + b * (text[i + k + 1] - 'a')) % MOD;
+                result[i + j] += (c * (text[i + k] - 'a') + d * (text[i + k + 1] - 'a')) % MOD;
+                result[i + j] %= MOD;
+                text[i + j] = 'a' + result[i + j];
+            }
+        }
+    }
+}
 
-    det = np.linalg.det(matrix)
-    mod_inv = mod_inverse(int(det) % mod, mod)
+int main() {
+    char text[100];
+    int key[2][2];
+    int size = 2;
+    int len, choice;
 
-    if mod_inv == -1:
-        return "Modular inverse not found."
+    printf("Choose an option:\n");
+    printf("1. Encrypt\n");
+    printf("2. Decrypt\n");
+    printf("Enter your choice (1 or 2): ");
+    scanf("%d", &choice);
 
-    inv_matrix = (mod_inv * np.round(det * np.linalg.inv(matrix)) % mod).astype(int)
-    text = [ALPHABET.index(char) for char in text]
+    if (choice != 1 && choice != 2) {
+        printf("Invalid choice. Please choose 1 for encryption or 2 for decryption.\n");
+        return 1;
+    }
 
-    result = []
+    printf("Enter the key matrix (%dx%d):\n", size, size);
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            scanf("%d", &key[i][j]);
+        }
+    }
 
-    for i in range(0, len(text), size):
-        block = np.array(text[i:i+size])
-        decrypted_block = (np.dot(inv_matrix, block) % mod).tolist()
-        result.extend(decrypted_block)
+    printf("Enter the text (in lowercase, no spaces): ");
+    scanf("%s", text);
+    len = strlen(text);
 
-    decrypted_text = ''.join([ALPHABET[i] for i in result])
-    return decrypted_text
+    if (choice == 1) {
+        hillEncrypt(key, text, len);
+        printf("Encrypted text: %s\n", text);
+    } else {
+        hillDecrypt(key, text, len);
+        printf("Decrypted text: %s\n", text);
+    }
 
-def main():
-    choice = int(input("Choose an option:\n1. Encrypt\n2. Decrypt\nEnter your choice (1 or 2): "))
-
-    if choice not in [1, 2]:
-        print("Invalid choice. Please choose 1 for encryption or 2 for decryption.")
-        return
-
-    size = int(input("Enter the matrix size (2, 3, or 4): "))
-
-    if size < 2 or size > 4:
-        print("Invalid matrix size. Please choose a size between 2 and 4.")
-        return
-
-    key = []
-    print(f"Enter the key matrix ({size}x{size}):")
-    for i in range(size):
-        key_row = list(map(int, input().split()))
-        key.append(key_row)
-
-    text = input("Enter the text (in lowercase, no spaces): ")
-    mod = 26  # Modulus for the alphabet
-
-    if choice == 1:
-        encrypted_text = hill_encrypt(key, text, size, mod)
-        print(f"Encrypted text: {encrypted_text}")
-    else:
-        decrypted_text = hill_decrypt(key, text, size, mod)
-        if "Matrix not invertible" in decrypted_text:
-            print("Decryption failed: Matrix not invertible.")
-        elif "Modular inverse not found" in decrypted_text:
-            print("Decryption failed: Modular inverse not found.")
-        else:
-            print(f"Decrypted text: {decrypted_text}")
-
-if __name__ == "__main__":
-    main()
+    return 0;
+}
